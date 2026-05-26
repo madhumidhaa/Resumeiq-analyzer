@@ -1,1 +1,1 @@
-# Resumeiq-analyzer
+https://resumeiq-analyzer.netlify.app/
