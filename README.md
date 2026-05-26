@@ -1,1 +1,1 @@
-https://resumeiq-analyzer.netlify.app/
+https://resumeiq1-analyzer.netlify.app/
