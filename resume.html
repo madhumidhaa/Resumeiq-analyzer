@@ -1,900 +1,748 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>ResumeIQ — Resume Analyzer</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResumeIQ — Resume Scanner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+
 :root{
-  --ink:#0d0d1a;--ink2:#1e1e35;--cream:#f9f6f0;--paper:#ffffff;
-  --gold:#c9a84c;--gold2:#e8c96b;--rose:#e05c5c;--sage:#4a8c6f;
-  --slate:#5a6275;--border:#e8e4dc;--shadow:rgba(13,13,26,0.08);
-  --radius:14px;--radius-lg:22px;
+  --ink:#0B1524;
+  --panel:#101E33;
+  --line:#24344E;
+  --paper:#ECEFF3;
+  --paper-dim:#B8C2D1;
+  --cyan:#4FD8C4;
+  --cyan-dim:#2A6E64;
+  --amber:#F0A93B;
+  --coral:#FF6B5B;
+  --mono:'JetBrains Mono', monospace;
+  --sans:'Inter', sans-serif;
 }
-html{scroll-behavior:smooth}
-body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;overflow-x:hidden}
 
-.page{display:none;min-height:100vh;animation:pageIn 0.4s ease}
-.page.active{display:block}
-@keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+*{margin:0;padding:0;box-sizing:border-box;}
 
-nav{position:sticky;top:0;z-index:100;background:rgba(249,246,240,0.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 2.5rem;height:68px;display:flex;align-items:center;justify-content:space-between;}
-.nav-logo{font-family:'Playfair Display',serif;font-size:1.45rem;font-weight:700;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:8px;cursor:pointer}
-.nav-logo span{color:var(--gold)}
-.logo-dot{width:8px;height:8px;background:var(--gold);border-radius:50%;display:inline-block;margin-left:2px}
-.nav-links{display:flex;align-items:center;gap:2rem}
-.nav-links a{font-size:0.9rem;font-weight:500;color:var(--slate);text-decoration:none;transition:color 0.2s;cursor:pointer;}
-.nav-links a:hover,.nav-links a.active{color:var(--ink)}
-.nav-cta{background:var(--ink);color:var(--cream)!important;padding:9px 22px;border-radius:100px;font-size:0.85rem!important;font-weight:600!important;transition:all 0.2s!important;}
-.nav-cta:hover{background:var(--gold)!important;color:var(--ink)!important}
-
-/* HERO */
-.hero{min-height:calc(100vh - 68px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem;position:relative;overflow:hidden;}
-.hero-bg{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 60% 40% at 20% 30%, rgba(201,168,76,0.08) 0%, transparent 60%),radial-gradient(ellipse 50% 40% at 80% 70%, rgba(74,140,111,0.06) 0%, transparent 60%);}
-.hero-grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(var(--border) 1px, transparent 1px),linear-gradient(90deg, var(--border) 1px, transparent 1px);background-size:80px 80px;opacity:0.4;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 70%);}
-.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--border);border-radius:100px;padding:6px 18px;font-size:0.8rem;font-weight:600;color:var(--slate);letter-spacing:1px;text-transform:uppercase;margin-bottom:2rem;box-shadow:0 2px 12px var(--shadow);}
-.hero-eyebrow i{color:var(--gold);font-size:14px}
-.hero h1{font-family:'Playfair Display',serif;font-size:clamp(3rem,7vw,5.5rem);font-weight:900;line-height:1.05;max-width:820px;margin-bottom:1.5rem;letter-spacing:-1px;}
-.hero h1 em{font-style:italic;color:var(--gold)}
-.hero-sub{max-width:560px;color:var(--slate);font-size:1.1rem;font-weight:300;line-height:1.7;margin-bottom:3rem;}
-.hero-actions{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;justify-content:center}
-.btn-primary{background:var(--ink);color:var(--cream);padding:15px 36px;border-radius:100px;font-family:'Outfit',sans-serif;font-size:1rem;font-weight:600;border:none;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.25s;box-shadow:0 4px 20px rgba(13,13,26,0.2);}
-.btn-primary:hover{background:var(--gold);color:var(--ink);transform:translateY(-2px);box-shadow:0 8px 28px rgba(201,168,76,0.35)}
-.btn-secondary{background:transparent;color:var(--ink);padding:14px 28px;border-radius:100px;font-family:'Outfit',sans-serif;font-size:0.95rem;font-weight:500;border:1.5px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.2s;}
-.btn-secondary:hover{border-color:var(--ink);background:var(--paper)}
-.hero-stats{display:flex;align-items:center;gap:2.5rem;margin-top:4rem;padding-top:3rem;border-top:1px solid var(--border);flex-wrap:wrap;justify-content:center;}
-.hero-stat .num{font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--ink)}
-.hero-stat .lbl{font-size:0.82rem;color:var(--slate);margin-top:2px;font-weight:400}
-.hero-stat-divider{width:1px;height:40px;background:var(--border)}
-
-.section{padding:6rem 2rem;max-width:1200px;margin:0 auto}
-.section-label{font-size:0.78rem;font-weight:600;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:1rem;}
-.section-title{font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,2.8rem);font-weight:700;line-height:1.2;margin-bottom:1.25rem;}
-.section-sub{color:var(--slate);font-size:1rem;line-height:1.7;max-width:560px}
-.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:4rem;}
-.feature-card{background:var(--paper);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;transition:all 0.3s;position:relative;overflow:hidden;}
-.feature-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px var(--shadow);border-color:rgba(201,168,76,0.3)}
-.feature-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:1.25rem;}
-.feature-icon.gold{background:rgba(201,168,76,0.12);color:var(--gold)}
-.feature-icon.sage{background:rgba(74,140,111,0.12);color:var(--sage)}
-.feature-icon.rose{background:rgba(224,92,92,0.12);color:var(--rose)}
-.feature-card h3{font-size:1.05rem;font-weight:600;margin-bottom:0.6rem}
-.feature-card p{color:var(--slate);font-size:0.88rem;line-height:1.6}
-
-.how-section{background:var(--ink);padding:6rem 2rem;color:var(--cream)}
-.how-inner{max-width:1100px;margin:0 auto}
-.how-section .section-label{color:var(--gold)}
-.how-section .section-title{color:var(--cream)}
-.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3rem;margin-top:4rem}
-.step{text-align:center}
-.step-num{width:56px;height:56px;border-radius:50%;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--gold);margin:0 auto 1.5rem;}
-.step h3{font-size:1.05rem;font-weight:600;margin-bottom:0.75rem;color:var(--cream)}
-.step p{color:rgba(249,246,240,0.55);font-size:0.88rem;line-height:1.6}
-.step-icon{font-size:2rem;margin-bottom:1rem;display:block;opacity:0.7}
-
-/* ANALYZER */
-.analyzer-page{padding:3rem 2rem 6rem;max-width:1100px;margin:0 auto}
-.analyzer-header{margin-bottom:3rem}
-.analyzer-header h1{font-family:'Playfair Display',serif;font-size:2.5rem;font-weight:700;margin-bottom:0.5rem;}
-.analyzer-header p{color:var(--slate);font-size:1rem}
-.analyzer-layout{display:grid;grid-template-columns:1fr 1.2fr;gap:2rem;align-items:start}
-
-/* API Key Box */
-.api-key-section{background:linear-gradient(135deg,rgba(201,168,76,0.06),rgba(74,140,111,0.04));border:1px solid rgba(201,168,76,0.25);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem;}
-.api-key-section label{font-size:0.82rem;font-weight:600;display:block;margin-bottom:0.4rem;color:var(--ink)}
-.api-key-section .api-hint{font-size:0.75rem;color:var(--slate);margin-bottom:0.6rem}
-.api-key-section .api-hint a{color:var(--gold);text-decoration:none}
-.api-key-wrap{position:relative;display:flex;gap:6px}
-.api-key-wrap input{flex:1;border:1px solid var(--border);border-radius:8px;background:var(--paper);padding:8px 12px;font-family:'Outfit',sans-serif;font-size:0.85rem;color:var(--ink);outline:none;transition:border-color 0.2s;}
-.api-key-wrap input:focus{border-color:var(--gold)}
-.toggle-key{background:none;border:1px solid var(--border);border-radius:8px;padding:8px 10px;cursor:pointer;color:var(--slate);transition:all 0.2s;font-size:13px}
-.toggle-key:hover{border-color:var(--gold);color:var(--gold)}
-
-.upload-panel{background:var(--paper);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;position:sticky;top:88px;}
-.upload-panel h2{font-size:1.1rem;font-weight:600;margin-bottom:1.5rem}
-.drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:3rem 1.5rem;text-align:center;cursor:pointer;transition:all 0.25s;background:var(--cream);margin-bottom:1.5rem;}
-.drop-zone:hover,.drop-zone.drag{border-color:var(--gold);background:rgba(201,168,76,0.04)}
-.drop-icon{width:60px;height:60px;background:var(--ink);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--gold);margin:0 auto 1rem;}
-.drop-zone h3{font-size:0.95rem;font-weight:600;margin-bottom:0.4rem}
-.drop-zone p{color:var(--slate);font-size:0.82rem;margin-bottom:1rem}
-.pick-btn{display:inline-flex;align-items:center;gap:6px;background:var(--ink);color:var(--cream);padding:8px 20px;border-radius:100px;font-family:'Outfit',sans-serif;font-size:0.85rem;font-weight:500;border:none;cursor:pointer;transition:all 0.2s;}
-.pick-btn:hover{background:var(--gold);color:var(--ink)}
-#fileInput{display:none}
-
-.file-ready{display:none;align-items:center;gap:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius);padding:12px 16px;margin-bottom:1.25rem;}
-.file-ready.show{display:flex}
-.file-ready i{color:#059669;font-size:18px}
-.file-ready .f-name{font-weight:600;font-size:0.88rem;color:#065f46}
-.file-ready .f-size{font-size:0.78rem;color:#4ade80}
-
-.jd-section{margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.5rem}
-.jd-section label{font-size:0.85rem;font-weight:600;display:block;margin-bottom:0.5rem}
-.jd-section p{font-size:0.78rem;color:var(--slate);margin-bottom:0.75rem}
-.jd-section textarea{width:100%;height:100px;border:1px solid var(--border);border-radius:10px;background:var(--cream);padding:10px 12px;font-family:'Outfit',sans-serif;font-size:0.85rem;color:var(--ink);resize:vertical;transition:border-color 0.2s;outline:none;}
-.jd-section textarea:focus{border-color:var(--gold)}
-
-.analyze-btn{width:100%;margin-top:1.5rem;background:var(--ink);color:var(--cream);padding:14px;border-radius:12px;font-family:'Outfit',sans-serif;font-size:0.95rem;font-weight:600;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.25s;}
-.analyze-btn:hover:not(:disabled){background:linear-gradient(135deg,var(--ink2),var(--gold));transform:translateY(-1px);box-shadow:0 6px 20px rgba(13,13,26,0.25)}
-.analyze-btn:disabled{opacity:0.45;cursor:not-allowed;transform:none}
-.spin{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.6s linear infinite;display:none}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* Results */
-.results-panel{background:var(--paper);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;display:none}
-.results-panel.show{display:block;animation:pageIn 0.5s ease}
-.score-banner{background:var(--ink);padding:2.5rem;color:var(--cream);display:grid;grid-template-columns:auto 1fr;gap:2rem;align-items:center;}
-.score-ring-wrap{position:relative;width:110px;height:110px;flex-shrink:0}
-.score-ring-wrap svg{transform:rotate(-90deg)}
-.score-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.score-big{font-family:'Playfair Display',serif;font-size:2.2rem;line-height:1;color:white}
-.score-sub{font-size:0.68rem;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase}
-.score-meta h2{font-family:'Playfair Display',serif;font-size:1.6rem;margin-bottom:0.5rem;line-height:1.2}
-.verdict-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:100px;font-size:0.78rem;font-weight:600;margin-bottom:0.75rem;}
-.verdict-pill.excellent{background:rgba(74,222,128,0.15);color:#4ade80}
-.verdict-pill.good{background:rgba(250,204,21,0.15);color:#facc15}
-.verdict-pill.fair{background:rgba(251,146,60,0.15);color:#fb923c}
-.verdict-pill.poor{background:rgba(248,113,113,0.15);color:#f87171}
-.score-meta .summ{font-size:0.88rem;opacity:0.65;line-height:1.6}
-.results-body{padding:2rem}
-.res-section{margin-bottom:2rem}
-.res-section:last-child{margin-bottom:0}
-.res-title{font-size:0.75rem;font-weight:700;color:var(--slate);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
-.res-title i{font-size:14px}
-.cat-bar{margin-bottom:0.85rem}
-.cat-row{display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:5px}
-.cat-row span:last-child{color:var(--slate);font-size:0.8rem}
-.bar-track{height:5px;background:#f1f5f9;border-radius:100px;overflow:hidden}
-.bar-fill{height:100%;border-radius:100px;width:0;transition:width 1.2s cubic-bezier(0.4,0,0.2,1)}
-.bar-fill.hi{background:linear-gradient(90deg,#059669,#34d399)}
-.bar-fill.md{background:linear-gradient(90deg,#d97706,#fbbf24)}
-.bar-fill.lo{background:linear-gradient(90deg,#dc2626,#f87171)}
-.tags-wrap{display:flex;flex-wrap:wrap;gap:8px}
-.tag{padding:5px 12px;border-radius:8px;font-size:0.8rem;font-weight:500}
-.tag.tech{background:#eff6ff;color:#1d4ed8}
-.tag.soft{background:#f0fdf4;color:#166534}
-.sec-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.sec-pill{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;font-size:0.8rem;font-weight:500;}
-.sec-pill.ok{background:#f0fdf4;color:#065f46}
-.sec-pill.no{background:#fef2f2;color:#991b1b}
-.sec-pill i{font-size:12px}
-.hl-list{list-style:none}
-.hl-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:0.88rem;line-height:1.5}
-.hl-item:last-child{border-bottom:none}
-.hl-item i{color:var(--gold);font-size:14px;margin-top:2px;flex-shrink:0}
-.sug-list{list-style:none}
-.sug-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:0.88rem;line-height:1.5;align-items:flex-start}
-.sug-item:last-child{border-bottom:none}
-.sug-dot{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:11px}
-.sug-dot.up{background:#fff7ed;color:#c2410c}
-.sug-dot.ok{background:#f0fdf4;color:#059669}
-.ats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.ats-card{background:var(--cream);border-radius:10px;padding:1rem;text-align:center}
-.ats-num{font-family:'Playfair Display',serif;font-size:1.8rem;display:block}
-.ats-lbl{font-size:0.75rem;color:var(--slate);display:block;margin-top:2px}
-.jd-match{background:linear-gradient(135deg,rgba(201,168,76,0.08),rgba(74,140,111,0.05));border:1px solid rgba(201,168,76,0.2);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;font-size:0.9rem;line-height:1.6;}
-.jd-match strong{color:var(--gold)}
-.err-box{display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius);padding:12px 16px;color:#991b1b;font-size:0.88rem;align-items:center;gap:10px;margin-top:1rem;}
-.err-box.show{display:flex}
-.reset-btn{display:flex;align-items:center;gap:6px;background:none;border:1px solid var(--border);border-radius:10px;padding:7px 14px;font-family:'Outfit',sans-serif;font-size:0.82rem;cursor:pointer;color:var(--slate);transition:all 0.2s;margin-bottom:0;}
-.reset-btn:hover{border-color:var(--rose);color:var(--rose)}
-
-/* Download corrected resume button */
-.download-bar{display:flex;gap:10px;flex-wrap:wrap;margin:1.25rem 1.25rem 0;padding-bottom:1rem;border-bottom:1px solid var(--border);}
-.dl-btn{display:inline-flex;align-items:center;gap:7px;background:var(--sage);color:#fff;border:none;padding:9px 18px;border-radius:10px;font-family:'Outfit',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
-.dl-btn:hover{background:#3a7a5f;transform:translateY(-1px)}
-.dl-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
-.dl-btn.generating{background:var(--gold);color:var(--ink)}
-
-/* Corrected Resume Modal */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(13,13,26,0.6);z-index:999;align-items:center;justify-content:center;padding:1rem}
-.modal-overlay.open{display:flex}
-.modal-box{background:var(--paper);border-radius:var(--radius-lg);width:100%;max-width:760px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(13,13,26,0.35);}
-.modal-head{padding:1.5rem 2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.modal-head h2{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700}
-.modal-close{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;color:var(--slate);transition:all 0.2s}
-.modal-close:hover{border-color:var(--rose);color:var(--rose)}
-.modal-body{padding:2rem;overflow-y:auto;flex:1}
-.modal-body pre{white-space:pre-wrap;font-family:'Outfit',sans-serif;font-size:0.9rem;line-height:1.8;color:var(--ink)}
-.modal-foot{padding:1.25rem 2rem;border-top:1px solid var(--border);display:flex;gap:10px;flex-shrink:0;flex-wrap:wrap}
-.modal-dl-btn{display:inline-flex;align-items:center;gap:6px;background:var(--ink);color:var(--cream);border:none;padding:10px 20px;border-radius:10px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.2s}
-.modal-dl-btn:hover{background:var(--gold);color:var(--ink)}
-.modal-copy-btn{display:inline-flex;align-items:center;gap:6px;background:transparent;color:var(--ink);border:1px solid var(--border);padding:10px 20px;border-radius:10px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:500;cursor:pointer;transition:all 0.2s}
-.modal-copy-btn:hover{border-color:var(--ink)}
-
-/* TIPS */
-.tips-page{padding:4rem 2rem 6rem;max-width:1000px;margin:0 auto}
-.tips-page h1{font-family:'Playfair Display',serif;font-size:2.5rem;font-weight:700;margin-bottom:0.5rem}
-.tips-page .sub{color:var(--slate);margin-bottom:3rem}
-.tips-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
-.tip-card{background:var(--paper);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;transition:all 0.3s}
-.tip-card:hover{transform:translateY(-3px);box-shadow:0 8px 28px var(--shadow)}
-.tip-card .tip-num{font-family:'Playfair Display',serif;font-size:2.5rem;color:var(--border);font-weight:700;margin-bottom:0.5rem;}
-.tip-card h3{font-size:1rem;font-weight:600;margin-bottom:0.5rem;color:var(--ink)}
-.tip-card p{color:var(--slate);font-size:0.88rem;line-height:1.6}
-
-/* ABOUT */
-.about-page{padding:4rem 2rem 6rem;max-width:900px;margin:0 auto}
-.about-page h1{font-family:'Playfair Display',serif;font-size:2.5rem;font-weight:700;margin-bottom:1rem}
-.about-page .lead{font-size:1.1rem;color:var(--slate);line-height:1.8;margin-bottom:2.5rem}
-.about-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-bottom:3rem}
-.about-card{background:var(--paper);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.75rem;text-align:center}
-.about-card i{font-size:2rem;color:var(--gold);margin-bottom:1rem;display:block}
-.about-card h3{font-size:0.95rem;font-weight:600;margin-bottom:0.5rem}
-.about-card p{color:var(--slate);font-size:0.83rem;line-height:1.6}
-.tech-stack{background:var(--paper);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem}
-.tech-stack h2{font-size:1.1rem;font-weight:600;margin-bottom:1rem}
-.tech-list{display:flex;flex-wrap:wrap;gap:10px}
-.tech-tag{padding:6px 16px;background:var(--cream);border:1px solid var(--border);border-radius:100px;font-size:0.85rem;font-weight:500}
-
-footer{background:var(--ink);color:rgba(249,246,240,0.5);padding:2.5rem;text-align:center;font-size:0.85rem;}
-footer .f-logo{font-family:'Playfair Display',serif;color:var(--cream);font-size:1.3rem;font-weight:700;margin-bottom:0.75rem;display:block;}
-footer .f-logo span{color:var(--gold)}
-footer .f-links{display:flex;gap:1.5rem;justify-content:center;margin-bottom:1rem;flex-wrap:wrap}
-footer .f-links a{color:rgba(249,246,240,0.5);text-decoration:none;font-size:0.85rem;cursor:pointer;transition:color 0.2s}
-footer .f-links a:hover{color:var(--gold)}
-
-@media(max-width:900px){
-  .analyzer-layout{grid-template-columns:1fr}
-  .upload-panel{position:static}
-  .features-grid,.steps-grid{grid-template-columns:1fr 1fr}
-  .about-cards{grid-template-columns:1fr 1fr}
+body{
+  background:
+    linear-gradient(180deg, rgba(11,21,36,0.0) 0%, rgba(11,21,36,0.4) 100%),
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(79,216,196,0.035) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(79,216,196,0.035) 40px),
+    var(--ink);
+  color:var(--paper);
+  font-family:var(--sans);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
 }
-@media(max-width:640px){
-  nav{padding:0 1.25rem}
-  .nav-links{gap:1rem}
-  .features-grid,.steps-grid,.tips-grid,.about-cards{grid-template-columns:1fr}
-  .score-banner{grid-template-columns:1fr;text-align:center}
-  .ats-grid{grid-template-columns:1fr}
-  .sec-grid{grid-template-columns:1fr}
-  nav .nav-links a:not(.nav-cta){display:none}
+
+::selection{background:var(--cyan); color:var(--ink);}
+
+/* ---------- topbar ---------- */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:22px 48px;
+  border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:50;
+  background:rgba(11,21,36,0.88);
+  backdrop-filter:blur(10px);
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-mark{
+  width:34px;height:34px;border:1.5px solid var(--cyan);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:700;color:var(--cyan);font-size:14px;
+  position:relative;overflow:hidden;
+}
+.brand-mark::after{
+  content:'';position:absolute;left:0;right:0;height:2px;background:var(--cyan);
+  top:-10px;box-shadow:0 0 8px var(--cyan);
+  animation:markscan 2.6s ease-in-out infinite;
+}
+@keyframes markscan{
+  0%{top:-4px;} 50%{top:32px;} 100%{top:-4px;}
+}
+.brand-name{font-family:var(--mono);font-weight:700;font-size:17px;letter-spacing:0.5px;}
+.brand-name span{color:var(--cyan);}
+.brand-tag{font-family:var(--mono);font-size:11px;color:var(--paper-dim);letter-spacing:1.5px;text-transform:uppercase;margin-left:6px;padding-left:12px;border-left:1px solid var(--line);}
+.topbar-right{font-family:var(--mono);font-size:11px;color:var(--paper-dim);letter-spacing:1px;display:flex;gap:18px;}
+.topbar-right .dot{color:var(--cyan);}
+
+/* ---------- hero ---------- */
+.hero{
+  max-width:820px;margin:0 auto;
+  padding:76px 48px 40px;
+}
+.eyebrow{
+  font-family:var(--mono);font-size:12px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:18px;display:flex;align-items:center;gap:10px;
+}
+.eyebrow::before{content:'';width:22px;height:1px;background:var(--cyan);}
+h1{
+  font-family:var(--sans);font-weight:800;font-size:52px;line-height:1.06;letter-spacing:-1.5px;
+  margin-bottom:22px;
+}
+h1 em{font-style:normal;color:var(--cyan);}
+.hero-desc{font-size:17px;line-height:1.65;color:var(--paper-dim);max-width:480px;margin-bottom:30px;}
+.hero-stats{display:flex;gap:34px;}
+.hero-stat b{display:block;font-family:var(--mono);font-size:26px;color:var(--paper);font-weight:700;}
+.hero-stat span{font-size:12px;color:var(--paper-dim);letter-spacing:0.3px;}
+
+/* ---------- upload section ---------- */
+.stage{max-width:1180px;margin:0 auto;padding:20px 48px 90px;}
+.section-label{
+  font-family:var(--mono);font-size:12px;letter-spacing:2px;color:var(--cyan);
+  text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:10px;
+}
+.section-label b{color:var(--paper-dim);font-weight:500;}
+
+.uploader{
+  border:1.5px dashed var(--line);border-radius:16px;
+  padding:56px 40px;text-align:center;background:var(--panel);
+  transition:border-color .2s ease, background .2s ease;
+  cursor:pointer;position:relative;
+}
+.uploader:hover, .uploader.drag{border-color:var(--cyan); background:#122036;}
+.uploader input{display:none;}
+.upload-icon{
+  width:60px;height:60px;margin:0 auto 18px;border-radius:12px;
+  border:1.5px solid var(--cyan-dim);display:flex;align-items:center;justify-content:center;
+}
+.uploader h3{font-size:19px;font-weight:700;margin-bottom:8px;}
+.uploader p{color:var(--paper-dim);font-size:14px;}
+.uploader .formats{font-family:var(--mono);font-size:11px;color:var(--cyan);margin-top:14px;letter-spacing:0.5px;}
+
+.file-chip{
+  display:none;align-items:center;justify-content:space-between;gap:16px;
+  border:1px solid var(--line);border-radius:12px;background:var(--panel);
+  padding:18px 22px;margin-top:18px;
+}
+.file-chip.show{display:flex;}
+.file-chip-left{display:flex;align-items:center;gap:14px;}
+.file-badge{
+  width:40px;height:40px;border-radius:8px;background:var(--cyan-dim);
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+  font-size:10px;color:var(--cyan);font-weight:700;
+}
+.file-name{font-weight:600;font-size:14.5px;}
+.file-meta{font-family:var(--mono);font-size:11.5px;color:var(--paper-dim);margin-top:2px;}
+.remove-btn{
+  background:none;border:1px solid var(--line);color:var(--paper-dim);
+  border-radius:7px;padding:7px 12px;font-family:var(--mono);font-size:11px;cursor:pointer;
+}
+.remove-btn:hover{border-color:var(--coral);color:var(--coral);}
+
+.analyze-row{display:flex;align-items:center;gap:18px;margin-top:22px;}
+.btn-analyze{
+  font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:0.5px;
+  background:var(--cyan);color:var(--ink);border:none;border-radius:10px;
+  padding:16px 32px;cursor:pointer;display:flex;align-items:center;gap:10px;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.btn-analyze:hover:not(:disabled){transform:translateY(-1px); box-shadow:0 8px 20px rgba(79,216,196,0.25);}
+.btn-analyze:disabled{background:var(--line);color:var(--paper-dim);cursor:not-allowed;}
+.analyze-hint{font-size:12.5px;color:var(--paper-dim);}
+
+.progress-wrap{display:none;margin-top:24px;}
+.progress-wrap.show{display:block;}
+.progress-label{font-family:var(--mono);font-size:12px;color:var(--cyan);margin-bottom:9px;display:flex;justify-content:space-between;}
+.progress-track{height:6px;background:var(--line);border-radius:4px;overflow:hidden;}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg, var(--cyan-dim), var(--cyan));transition:width .3s ease;}
+
+/* ---------- results ---------- */
+#results{display:none;margin-top:70px;}
+#results.show{display:block;animation:fadein .5s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+.results-top{display:grid;grid-template-columns:280px 1fr;gap:36px;margin-bottom:44px;}
+
+.score-card{
+  border:1px solid var(--line);border-radius:16px;background:var(--panel);
+  padding:32px;display:flex;flex-direction:column;align-items:center;text-align:center;
+}
+.ring-wrap{position:relative;width:180px;height:180px;margin-bottom:18px;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:var(--line);stroke-width:11;}
+.ring-fg{fill:none;stroke:var(--cyan);stroke-width:11;stroke-linecap:round;transition:stroke-dashoffset 1.1s cubic-bezier(.3,.9,.3,1);}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ring-score{font-family:var(--mono);font-size:42px;font-weight:800;}
+.ring-max{font-family:var(--mono);font-size:12px;color:var(--paper-dim);}
+.grade-pill{
+  font-family:var(--mono);font-weight:700;font-size:13px;letter-spacing:1px;
+  padding:6px 16px;border-radius:20px;margin-top:6px;
+}
+.score-verdict{font-size:13.5px;color:var(--paper-dim);margin-top:14px;line-height:1.5;}
+
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.metric-box{
+  border:1px solid var(--line);border-radius:12px;background:var(--panel);
+  padding:20px;
+}
+.metric-box .m-label{font-family:var(--mono);font-size:10.5px;color:var(--paper-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
+.metric-box .m-value{font-family:var(--mono);font-size:26px;font-weight:800;}
+.metric-box .m-sub{font-size:12px;color:var(--paper-dim);margin-top:4px;}
+
+.breakdown{
+  border:1px solid var(--line);border-radius:16px;background:var(--panel);
+  padding:32px;margin-bottom:36px;
+}
+.breakdown h2, .panel-title{font-size:20px;font-weight:800;margin-bottom:22px;display:flex;align-items:center;gap:10px;}
+.panel-title .num{font-family:var(--mono);color:var(--cyan);font-size:14px;}
+
+.check-row{
+  display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--line);
+}
+.check-row:last-child{border-bottom:none;}
+.check-icon{
+  width:26px;height:26px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;margin-top:1px;
+}
+.check-icon.pass{background:rgba(79,216,196,0.15);color:var(--cyan);}
+.check-icon.warn{background:rgba(240,169,59,0.15);color:var(--amber);}
+.check-icon.fail{background:rgba(255,107,91,0.15);color:var(--coral);}
+.check-body b{display:block;font-size:14.5px;font-weight:700;margin-bottom:3px;}
+.check-body p{font-size:13px;color:var(--paper-dim);line-height:1.5;}
+.check-points{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--paper-dim);white-space:nowrap;padding-left:16px;}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:36px;}
+
+.tag-cloud{display:flex;flex-wrap:wrap;gap:8px;}
+.tag{
+  font-family:var(--mono);font-size:12px;padding:7px 13px;border-radius:20px;
+  border:1px solid var(--cyan-dim);color:var(--cyan);background:rgba(79,216,196,0.06);
+}
+.tag.soft{border-color:var(--line);color:var(--paper-dim);background:transparent;}
+.empty-note{font-size:13px;color:var(--paper-dim);font-style:italic;}
+
+.suggestion{
+  display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line);
+}
+.suggestion:last-child{border-bottom:none;}
+.sugg-num{font-family:var(--mono);color:var(--amber);font-weight:800;font-size:13px;flex-shrink:0;}
+.suggestion p{font-size:13.5px;color:var(--paper-dim);line-height:1.55;}
+.suggestion b{color:var(--paper);}
+
+.section-strip{
+  border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:32px;margin-bottom:36px;
+}
+.strip-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;}
+.strip-item{
+  border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:10px;
+}
+.strip-item .dot2{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.strip-item.found .dot2{background:var(--cyan);box-shadow:0 0 6px var(--cyan);}
+.strip-item.missing .dot2{background:var(--line);}
+.strip-item span{font-size:13.5px;font-weight:600;}
+.strip-item.missing span{color:var(--paper-dim);}
+
+.reset-row{text-align:center;margin-top:20px;}
+.btn-reset{
+  font-family:var(--mono);background:none;border:1px solid var(--line);color:var(--paper-dim);
+  padding:12px 26px;border-radius:10px;font-size:12.5px;cursor:pointer;letter-spacing:0.5px;
+}
+.btn-reset:hover{border-color:var(--cyan);color:var(--cyan);}
+
+footer{
+  border-top:1px solid var(--line);padding:26px 48px;text-align:center;
+  font-family:var(--mono);font-size:11px;color:var(--paper-dim);letter-spacing:0.5px;
+}
+
+@media(max-width:860px){
+  .hero{padding:50px 24px;}
+  h1{font-size:36px;}
+  .stage{padding:20px 24px 60px;}
+  .results-top{grid-template-columns:1fr;}
+  .metric-grid{grid-template-columns:1fr 1fr;}
+  .two-col{grid-template-columns:1fr;}
+  .topbar{padding:18px 24px;}
+  .brand-tag{display:none;}
 }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav>
-  <a class="nav-logo" onclick="showPage('home')">Resume<span>IQ</span><span class="logo-dot"></span></a>
-  <div class="nav-links">
-    <a onclick="showPage('home')" data-page="home">Home</a>
-    <a onclick="showPage('analyzer')" data-page="analyzer">Analyzer</a>
-    <a onclick="showPage('tips')" data-page="tips">Tips</a>
-    <a onclick="showPage('about')" data-page="about">About</a>
-    <a class="nav-cta" onclick="showPage('analyzer')">Analyze Now</a>
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">iq</div>
+    <div class="brand-name">Resume<span>IQ</span></div>
+    <div class="brand-tag">Resume Scanner</div>
   </div>
-</nav>
+  <div class="topbar-right">
+    <span><span class="dot">●</span> Runs in your browser</span>
+    <span>No files ever leave your device</span>
+  </div>
+</div>
 
-<!-- HOME PAGE -->
-<div class="page active" id="page-home">
-  <div class="hero">
-    <div class="hero-bg"></div>
-    <div class="hero-grid"></div>
-    <div class="hero-eyebrow"><i class="fas fa-brain"></i> Smart Resume Analysis</div>
-    <h1>Your Resume,<em> Perfected.</em></h1>
-    <p class="hero-sub">Upload your resume and receive a deep, professional analysis — scores, extracted skills, missing sections, ATS compatibility, and a fully corrected resume you can download.</p>
-    <div class="hero-actions">
-      <button class="btn-primary" onclick="showPage('analyzer')"><i class="fas fa-upload"></i> Analyze My Resume</button>
-      <button class="btn-secondary" onclick="showPage('tips')"><i class="fas fa-book-open"></i> Resume Tips</button>
-    </div>
+<div class="hero">
+  <div>
+    <div class="eyebrow">Document Scanner</div>
+    <h1>Put your resume<br>under the <em>scanner.</em></h1>
+    <p class="hero-desc">Upload a resume and ResumeIQ scans it line by line — checking structure, keywords, measurable impact, and formatting — then hands back a clear score with exactly what to fix.</p>
     <div class="hero-stats">
-      <div class="hero-stat"><div class="num">12+</div><div class="lbl">Metrics Analyzed</div></div>
-      <div class="hero-stat-divider"></div>
-      <div class="hero-stat"><div class="num">Smart</div><div class="lbl">Deep Analysis</div></div>
-      <div class="hero-stat-divider"></div>
-      <div class="hero-stat"><div class="num">Free</div><div class="lbl">Bring Your API Key</div></div>
-      <div class="hero-stat-divider"></div>
-      <div class="hero-stat"><div class="num">PDF</div><div class="lbl">Full PDF Support</div></div>
+      <div class="hero-stat"><b>10+</b><span>Checks run</span></div>
+      <div class="hero-stat"><b>100pt</b><span>Scoring scale</span></div>
+      <div class="hero-stat"><b>0s</b><span>Upload wait — local scan</span></div>
     </div>
   </div>
-
-  <div style="background:var(--paper);padding:1px 0">
-  <div class="section">
-    <div class="section-label">What We Analyze</div>
-    <h2 class="section-title">Everything your resume needs to shine</h2>
-    <p class="section-sub">Goes beyond keyword matching — understands context, impact, and presentation like a senior recruiter, and generates a corrected resume you can download.</p>
-    <div class="features-grid">
-      <div class="feature-card"><div class="feature-icon gold"><i class="fas fa-chart-bar"></i></div><h3>Overall Score</h3><p>Get a comprehensive 0–100 score across 5 key dimensions with visual breakdowns and category ratings.</p></div>
-      <div class="feature-card"><div class="feature-icon sage"><i class="fas fa-tags"></i></div><h3>Skills Extraction</h3><p>Automatically identifies technical and soft skills from your resume, including skills you may have missed listing.</p></div>
-      <div class="feature-card"><div class="feature-icon rose"><i class="fas fa-robot"></i></div><h3>ATS Compatibility</h3><p>Check how your resume performs against Applicant Tracking Systems used by 98% of Fortune 500 companies.</p></div>
-      <div class="feature-card"><div class="feature-icon gold"><i class="fas fa-file-pen"></i></div><h3>Corrected Resume</h3><p>Get an improved, rewritten version of your resume with fixes applied — ready to copy or download as a text file.</p></div>
-      <div class="feature-card"><div class="feature-icon sage"><i class="fas fa-list-check"></i></div><h3>Section Audit</h3><p>Identify which key sections are present or missing: Summary, Projects, Certifications, Awards, and more.</p></div>
-      <div class="feature-card"><div class="feature-icon rose"><i class="fas fa-bullseye"></i></div><h3>Job Description Match</h3><p>Paste a job description and get tailored analysis on how well your resume aligns with that specific role.</p></div>
-    </div>
-  </div>
-  </div>
-
-  <div class="how-section">
-    <div class="how-inner">
-      <div class="section-label">How It Works</div>
-      <h2 class="section-title" style="color:var(--cream)">Three steps to a better resume</h2>
-      <div class="steps-grid">
-        <div class="step"><div class="step-num">1</div><span class="step-icon">🔑</span><h3>Enter Your API Key</h3><p>Paste your Anthropic API key. It stays in your browser only — never stored or sent anywhere else.</p></div>
-        <div class="step"><div class="step-num">2</div><span class="step-icon">📄</span><h3>Upload Your Resume</h3><p>Drag and drop your PDF or text resume and optionally paste a job description for targeted analysis.</p></div>
-        <div class="step"><div class="step-num">3</div><span class="step-icon">✨</span><h3>Get Report + Fixed Resume</h3><p>Receive a full scorecard, plus a corrected, improved resume you can download and use immediately.</p></div>
-      </div>
-      <div style="text-align:center;margin-top:3.5rem">
-        <button class="btn-primary" onclick="showPage('analyzer')" style="margin:0 auto"><i class="fas fa-arrow-right"></i> Start Analyzing</button>
-      </div>
-    </div>
-  </div>
-
-  <footer>
-    <span class="f-logo">Resume<span>IQ</span></span>
-    <div class="f-links">
-      <a onclick="showPage('home')">Home</a><a onclick="showPage('analyzer')">Analyzer</a><a onclick="showPage('tips')">Tips</a><a onclick="showPage('about')">About</a>
-    </div>
-    <p>&copy; 2025 ResumeIQ. All rights reserved.</p>
-  </footer>
 </div>
 
-<!-- ANALYZER PAGE -->
-<div class="page" id="page-analyzer">
-  <div class="analyzer-page">
-    <div class="analyzer-header">
-      <h1>Resume Analyzer</h1>
-      <p>Upload your resume below. Supports PDF and plain text formats.</p>
+<div class="stage">
+  <div class="section-label"><b>01 /</b> Upload</div>
+  <div class="uploader" id="dropzone">
+    <input type="file" id="fileInput" accept=".pdf,.docx,.txt">
+    <div class="upload-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4FD8C4" stroke-width="1.8"><path d="M12 3v12m0-12 5 5m-5-5-5 5M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
     </div>
+    <h3>Drop your resume here</h3>
+    <p>or click to browse from your device</p>
+    <div class="formats">ACCEPTS · PDF · DOCX · TXT</div>
+  </div>
 
-    <div class="analyzer-layout">
-      <!-- Left: Upload Panel -->
-      <div class="upload-panel">
-        <h2><i class="fas fa-upload" style="color:var(--gold);margin-right:8px"></i>Upload Resume</h2>
-
-        <!-- API Key -->
-        <div class="api-key-section">
-          <label for="apiKeyInput"><i class="fas fa-key" style="color:var(--gold);margin-right:5px"></i>Anthropic API Key</label>
-          <p class="api-hint">Get yours at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>. Stored in your browser only.</p>
-          <div class="api-key-wrap">
-            <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off"/>
-            <button class="toggle-key" onclick="toggleKeyVisibility()" title="Show/hide key" id="eyeBtn"><i class="fas fa-eye" id="eyeIcon"></i></button>
-          </div>
-        </div>
-
-        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-          <div class="drop-icon"><i class="fas fa-file-lines"></i></div>
-          <h3>Drag & drop your resume</h3>
-          <p>PDF or text files accepted</p>
-          <button class="pick-btn" onclick="event.stopPropagation();document.getElementById('fileInput').click()">
-            <i class="fas fa-folder-open"></i> Browse
-          </button>
-          <input type="file" id="fileInput" accept=".pdf,.txt,.doc,.docx" />
-        </div>
-
-        <div class="file-ready" id="fileReady">
-          <i class="fas fa-circle-check"></i>
-          <div>
-            <div class="f-name" id="fName">file.pdf</div>
-            <div class="f-size" id="fSize">—</div>
-          </div>
-        </div>
-
-        <div class="jd-section">
-          <label for="jdInput"><i class="fas fa-briefcase" style="color:var(--gold);margin-right:6px"></i>Job Description (Optional)</label>
-          <p>Paste a job description for a tailored match analysis.</p>
-          <textarea id="jdInput" placeholder="Paste the job description here..."></textarea>
-        </div>
-
-        <button class="analyze-btn" id="analyzeBtn" disabled onclick="doAnalyze()">
-          <div class="spin" id="spinner"></div>
-          <i class="fas fa-wand-magic-sparkles" id="btnIcon"></i>
-          <span id="btnText">Analyze Resume</span>
-        </button>
-
-        <div class="err-box" id="errBox"><i class="fas fa-circle-exclamation"></i><span id="errMsg"></span></div>
-      </div>
-
-      <!-- Right: Results Panel -->
+  <div class="file-chip" id="fileChip">
+    <div class="file-chip-left">
+      <div class="file-badge" id="fileExt">DOC</div>
       <div>
-        <div id="resultsPanel" class="results-panel">
-          <div class="download-bar">
-            <button class="reset-btn" onclick="resetAll()"><i class="fas fa-rotate-left"></i> Analyze another</button>
-            <button class="dl-btn" id="correctedBtn" onclick="getCorrectedResume()">
-              <i class="fas fa-file-pen"></i> Get Corrected Resume
-            </button>
-          </div>
-
-          <!-- Score banner -->
-          <div class="score-banner">
-            <div class="score-ring-wrap">
-              <svg width="110" height="110" viewBox="0 0 110 110">
-                <circle cx="55" cy="55" r="48" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="7"/>
-                <circle id="arcCircle" cx="55" cy="55" r="48" fill="none" stroke="var(--gold)" stroke-width="7"
-                  stroke-dasharray="301.6" stroke-dashoffset="301.6" stroke-linecap="round"
-                  style="transition:stroke-dashoffset 1.3s cubic-bezier(0.4,0,0.2,1)"/>
-              </svg>
-              <div class="score-center">
-                <div class="score-big" id="scoreNum">—</div>
-                <div class="score-sub">/ 100</div>
-              </div>
-            </div>
-            <div class="score-meta">
-              <div class="verdict-pill" id="verdictPill"></div>
-              <h2 id="heroTitle">—</h2>
-              <div class="summ" id="heroSumm"></div>
-            </div>
-          </div>
-
-          <div class="results-body">
-            <div class="jd-match" id="jdMatchBox" style="display:none"></div>
-
-            <div class="res-section">
-              <div class="res-title"><i class="fas fa-chart-simple"></i> Category Scores</div>
-              <div id="catBars"></div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem">
-              <div class="res-section" style="margin:0">
-                <div class="res-title"><i class="fas fa-code"></i> Technical Skills</div>
-                <div class="tags-wrap" id="techTags"></div>
-              </div>
-              <div class="res-section" style="margin:0">
-                <div class="res-title"><i class="fas fa-handshake"></i> Soft Skills</div>
-                <div class="tags-wrap" id="softTags"></div>
-              </div>
-            </div>
-
-            <div class="res-section">
-              <div class="res-title"><i class="fas fa-layout"></i> Resume Sections</div>
-              <div class="sec-grid" id="secGrid"></div>
-            </div>
-
-            <div class="res-section">
-              <div class="res-title"><i class="fas fa-star"></i> Key Highlights</div>
-              <ul class="hl-list" id="hlList"></ul>
-            </div>
-
-            <div class="res-section">
-              <div class="res-title"><i class="fas fa-lightbulb"></i> Improvement Suggestions</div>
-              <ul class="sug-list" id="sugList"></ul>
-            </div>
-
-            <div class="res-section">
-              <div class="res-title"><i class="fas fa-robot"></i> ATS Compatibility</div>
-              <div class="ats-grid" id="atsGrid"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="placeholder" style="background:var(--paper);border:1px solid var(--border);border-radius:var(--radius-lg);padding:4rem 2rem;text-align:center;color:var(--slate)">
-          <i class="fas fa-file-magnifying-glass" style="font-size:3rem;color:var(--border);display:block;margin-bottom:1.25rem"></i>
-          <h3 style="font-size:1.1rem;font-weight:600;color:var(--ink);margin-bottom:0.5rem">Your analysis will appear here</h3>
-          <p style="font-size:0.88rem;line-height:1.6">Enter your API key, upload a resume on the left,<br>and click <strong>Analyze Resume</strong> to get started.</p>
-        </div>
+        <div class="file-name" id="fileName">—</div>
+        <div class="file-meta" id="fileMeta">—</div>
       </div>
     </div>
+    <button class="remove-btn" id="removeBtn">Remove</button>
   </div>
 
-  <footer>
-    <span class="f-logo">Resume<span>IQ</span></span>
-    <div class="f-links">
-      <a onclick="showPage('home')">Home</a><a onclick="showPage('analyzer')">Analyzer</a><a onclick="showPage('tips')">Tips</a><a onclick="showPage('about')">About</a>
-    </div>
-    <p>&copy; 2025 ResumeIQ. All rights reserved.</p>
-  </footer>
-</div>
-
-<!-- TIPS PAGE -->
-<div class="page" id="page-tips">
-  <div class="tips-page">
-    <p class="section-label">Expert Advice</p>
-    <h1>Resume Writing Tips</h1>
-    <p class="sub">Tried-and-tested advice from hiring managers and recruiters to make your resume stand out.</p>
-    <div class="tips-grid">
-      <div class="tip-card"><div class="tip-num">01</div><h3>Tailor Every Application</h3><p>Customize your resume for each job. Mirror the language in the job description. ATS systems reward keyword alignment — use the exact terms they use.</p></div>
-      <div class="tip-card"><div class="tip-num">02</div><h3>Lead with a Strong Summary</h3><p>A 2–3 sentence professional summary at the top immediately tells recruiters who you are and what value you bring. Don't skip it — it sets the tone.</p></div>
-      <div class="tip-card"><div class="tip-num">03</div><h3>Quantify Your Impact</h3><p>Replace vague duties with measurable results. "Increased sales by 34%" beats "responsible for sales." Numbers create instant credibility and memorability.</p></div>
-      <div class="tip-card"><div class="tip-num">04</div><h3>Use Action Verbs</h3><p>Start every bullet with a strong action verb: Led, Designed, Reduced, Launched, Optimized. Avoid passive language like "was responsible for" or "helped with."</p></div>
-      <div class="tip-card"><div class="tip-num">05</div><h3>Keep It to One Page (Usually)</h3><p>For under 10 years of experience, aim for one page. For senior roles, two pages are fine. Never pad — every line should earn its place.</p></div>
-      <div class="tip-card"><div class="tip-num">06</div><h3>Format for ATS First</h3><p>Use standard section headings (Experience, Education, Skills). Avoid tables, columns, and images. Save as PDF. ATS robots parse text sequentially — keep it clean.</p></div>
-      <div class="tip-card"><div class="tip-num">07</div><h3>Highlight Transferable Skills</h3><p>Changing careers? Identify skills from past roles that apply to the new field. Communication, leadership, project management — these cross every industry.</p></div>
-      <div class="tip-card"><div class="tip-num">08</div><h3>Proofread Obsessively</h3><p>A single typo can get you rejected. Read it aloud. Use Grammarly. Ask a friend to review it. Then read it backwards, word by word. No errors, ever.</p></div>
-    </div>
-    <div style="text-align:center;margin-top:3.5rem">
-      <button class="btn-primary" onclick="showPage('analyzer')"><i class="fas fa-upload"></i> Analyze My Resume Now</button>
-    </div>
+  <div class="analyze-row">
+    <button class="btn-analyze" id="analyzeBtn" disabled>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      Analyze Resume
+    </button>
+    <span class="analyze-hint" id="analyzeHint">Upload a file to enable scanning</span>
   </div>
-  <footer>
-    <span class="f-logo">Resume<span>IQ</span></span>
-    <div class="f-links">
-      <a onclick="showPage('home')">Home</a><a onclick="showPage('analyzer')">Analyzer</a><a onclick="showPage('tips')">Tips</a><a onclick="showPage('about')">About</a>
-    </div>
-    <p>&copy; 2025 ResumeIQ. All rights reserved.</p>
-  </footer>
-</div>
 
-<!-- ABOUT PAGE -->
-<div class="page" id="page-about">
-  <div class="about-page">
-    <p class="section-label">About ResumeIQ</p>
-    <h1>Built to Give Everyone a Fair Shot</h1>
-    <p class="lead">ResumeIQ was built with one mission: make professional-grade resume feedback accessible to everyone. We deliver analysis that rivals experienced HR professionals, powered by the Anthropic Claude API using your own key.</p>
-    <div class="about-cards">
-      <div class="about-card"><i class="fas fa-shield-halved"></i><h3>Private & Secure</h3><p>Your resume and API key are never stored or sent to any server other than Anthropic's. Everything stays in your browser session.</p></div>
-      <div class="about-card"><i class="fas fa-brain"></i><h3>Intelligent Analysis</h3><p>Our engine reads and understands your resume like a human recruiter, going far beyond simple keyword matching.</p></div>
-      <div class="about-card"><i class="fas fa-file-pen"></i><h3>Corrected Resume</h3><p>Not just feedback — get a rewritten, improved version of your resume with all suggestions applied, ready to download.</p></div>
-    </div>
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label"><span id="progressText">Scanning…</span><span id="progressPct">0%</span></div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
   </div>
-  <footer>
-    <span class="f-logo">Resume<span>IQ</span></span>
-    <div class="f-links">
-      <a onclick="showPage('home')">Home</a><a onclick="showPage('analyzer')">Analyzer</a><a onclick="showPage('tips')">Tips</a><a onclick="showPage('about')">About</a>
-    </div>
-    <p>&copy; 2025 ResumeIQ. All rights reserved.</p>
-  </footer>
-</div>
 
-<!-- Corrected Resume Modal -->
-<div class="modal-overlay" id="correctedModal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <h2><i class="fas fa-file-pen" style="color:var(--sage);margin-right:8px"></i>Corrected Resume</h2>
-      <button class="modal-close" onclick="closeModal()"><i class="fas fa-xmark"></i></button>
+  <div id="results">
+
+    <div class="section-label"><b>02 /</b> Scan Results</div>
+    <div class="results-top">
+      <div class="score-card">
+        <div class="ring-wrap">
+          <svg width="180" height="180" viewBox="0 0 180 180">
+            <circle class="ring-bg" cx="90" cy="90" r="76"></circle>
+            <circle class="ring-fg" id="ringFg" cx="90" cy="90" r="76" stroke-dasharray="477" stroke-dashoffset="477"></circle>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-score" id="scoreNum">0</div>
+            <div class="ring-max">/ 100</div>
+          </div>
+        </div>
+        <div class="grade-pill" id="gradePill">—</div>
+        <div class="score-verdict" id="scoreVerdict">—</div>
+      </div>
+
+      <div class="metric-grid" id="metricGrid"></div>
     </div>
-    <div class="modal-body">
-      <pre id="correctedText">Generating your improved resume...</pre>
+
+    <div class="breakdown">
+      <div class="panel-title"><span class="num">//</span> Check Breakdown</div>
+      <div id="checkList"></div>
     </div>
-    <div class="modal-foot">
-      <button class="modal-dl-btn" onclick="downloadCorrected()"><i class="fas fa-download"></i> Download .txt</button>
-      <button class="modal-copy-btn" onclick="copyCorrected()"><i class="fas fa-copy"></i> Copy to Clipboard</button>
+
+    <div class="section-strip">
+      <div class="panel-title"><span class="num">//</span> Section Coverage</div>
+      <div class="strip-grid" id="sectionStrip"></div>
+    </div>
+
+    <div class="two-col">
+      <div class="breakdown">
+        <div class="panel-title"><span class="num">//</span> Keywords Found</div>
+        <div class="tag-cloud" id="skillTags"></div>
+      </div>
+      <div class="breakdown">
+        <div class="panel-title"><span class="num">//</span> Action Verbs Detected</div>
+        <div class="tag-cloud" id="verbTags"></div>
+      </div>
+    </div>
+
+    <div class="breakdown">
+      <div class="panel-title"><span class="num">//</span> Suggestions To Improve Score</div>
+      <div id="suggestionList"></div>
+    </div>
+
+    <div class="reset-row">
+      <button class="btn-reset" id="resetBtn">Scan a different resume</button>
     </div>
   </div>
 </div>
+
+<footer>RESUMEIQ · YOUR DOCUMENT IS PARSED LOCALLY IN THIS BROWSER TAB AND IS NEVER UPLOADED ANYWHERE</footer>
 
 <script>
-// ── NAV ──
-function showPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  document.querySelectorAll('[data-page]').forEach(a => {
-    a.classList.toggle('active', a.dataset.page === id);
-  });
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'.replace('pdf.min.js','pdf.worker.min.js');
 
-// ── API KEY ──
-function toggleKeyVisibility() {
-  const inp = document.getElementById('apiKeyInput');
-  const icon = document.getElementById('eyeIcon');
-  if (inp.type === 'password') {
-    inp.type = 'text';
-    icon.className = 'fas fa-eye-slash';
-  } else {
-    inp.type = 'password';
-    icon.className = 'fas fa-eye';
-  }
-}
-
-function getApiKey() {
-  return document.getElementById('apiKeyInput').value.trim();
-}
-
-// ── FILE HANDLING ──
-let currentFile = null;
-let lastResumeText = '';
-const dropZone = document.getElementById('dropZone');
+const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('fileInput');
+const fileChip = document.getElementById('fileChip');
+const fileName = document.getElementById('fileName');
+const fileMeta = document.getElementById('fileMeta');
+const fileExt = document.getElementById('fileExt');
+const removeBtn = document.getElementById('removeBtn');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const analyzeHint = document.getElementById('analyzeHint');
+const progressWrap = document.getElementById('progressWrap');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+const progressPct = document.getElementById('progressPct');
+const resultsEl = document.getElementById('results');
+const resetBtn = document.getElementById('resetBtn');
 
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault(); dropZone.classList.remove('drag');
-  if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+let currentFile = null;
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('drag');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
 });
-fileInput.addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
 
-function setFile(f) {
-  const allowed = ['pdf','txt','doc','docx'];
-  const ext = f.name.split('.').pop().toLowerCase();
-  if (!allowed.includes(ext)) {
-    showErr('Please upload a PDF or text file.');
+removeBtn.addEventListener('click', () => {
+  currentFile = null; fileInput.value = '';
+  fileChip.classList.remove('show');
+  analyzeBtn.disabled = true;
+  analyzeHint.textContent = 'Upload a file to enable scanning';
+});
+
+resetBtn.addEventListener('click', () => {
+  currentFile = null; fileInput.value = '';
+  fileChip.classList.remove('show');
+  analyzeBtn.disabled = true;
+  analyzeHint.textContent = 'Upload a file to enable scanning';
+  resultsEl.classList.remove('show');
+  progressWrap.classList.remove('show');
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+function handleFile(file){
+  const okTypes = ['.pdf','.docx','.txt'];
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  if (!okTypes.includes(ext)){
+    alert('Please upload a PDF, DOCX, or TXT file.');
     return;
   }
-  currentFile = f;
-  document.getElementById('fName').textContent = f.name;
-  document.getElementById('fSize').textContent = (f.size / 1024).toFixed(1) + ' KB';
-  document.getElementById('fileReady').classList.add('show');
-  document.getElementById('analyzeBtn').disabled = false;
-  document.getElementById('errBox').classList.remove('show');
+  currentFile = file;
+  fileName.textContent = file.name;
+  fileMeta.textContent = (file.size/1024).toFixed(1) + ' KB · ' + ext.replace('.','').toUpperCase();
+  fileExt.textContent = ext.replace('.','').toUpperCase();
+  fileChip.classList.add('show');
+  analyzeBtn.disabled = false;
+  analyzeHint.textContent = 'Ready to scan';
+  resultsEl.classList.remove('show');
 }
 
-// ── EXTRACT TEXT ──
-function extractFile(file) {
-  return new Promise((resolve, reject) => {
-    if (file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf') {
-      const reader = new FileReader();
-      reader.onload = e => resolve({ type: 'pdf', data: e.target.result.split(',')[1] });
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    } else {
-      const reader = new FileReader();
-      reader.onload = e => resolve({ type: 'text', data: e.target.result });
-      reader.onerror = reject;
-      reader.readAsText(file);
-    }
-  });
-}
-
-// ── CALL CLAUDE API ──
-async function callClaude(systemPrompt, messages, maxTokens = 1500) {
-  const apiKey = getApiKey();
-  if (!apiKey) throw new Error('Please enter your Anthropic API key above.');
-  if (!apiKey.startsWith('sk-ant-')) throw new Error('Invalid API key format. It should start with sk-ant-');
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages: messages
-    })
-  });
-
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({}));
-    const msg = e.error?.message || `HTTP ${res.status}`;
-    if (res.status === 401) throw new Error('Invalid API key. Check your key at console.anthropic.com.');
-    if (res.status === 429) throw new Error('Rate limit reached. Wait a moment and try again.');
-    throw new Error(msg);
-  }
-  const data = await res.json();
-  return data.content.map(c => c.text || '').join('');
-}
-
-// ── ANALYZE ──
-async function doAnalyze() {
+analyzeBtn.addEventListener('click', async () => {
   if (!currentFile) return;
-  const btn = document.getElementById('analyzeBtn');
-  const spin = document.getElementById('spinner');
-  const icon = document.getElementById('btnIcon');
-  const btnTxt = document.getElementById('btnText');
-  const errBox = document.getElementById('errBox');
-  const jd = document.getElementById('jdInput').value.trim();
-
-  btn.disabled = true;
-  spin.style.display = 'block';
-  icon.style.display = 'none';
-  btnTxt.textContent = 'Analyzing…';
-  errBox.classList.remove('show');
-  document.getElementById('resultsPanel').classList.remove('show');
-  document.getElementById('placeholder').style.display = 'block';
+  analyzeBtn.disabled = true;
+  progressWrap.classList.add('show');
+  resultsEl.classList.remove('show');
+  setProgress(8);
 
   try {
-    const extracted = await extractFile(currentFile);
-
-    const sys = `You are a world-class HR consultant and resume coach with 20 years of experience at top recruitment firms. Analyze the provided resume thoroughly.
-${jd ? `The candidate is applying for this role:\n"""\n${jd}\n"""\nInclude a "jdMatch" field with 1-2 sentences on alignment.` : ''}
-Return ONLY a valid JSON object — NO preamble, NO markdown, NO backticks. Schema:
-{
-  "overallScore": <0-100>,
-  "verdict": "<Excellent|Good|Fair|Needs Work>",
-  "heroTitle": "<6-9 word punchy title about the candidate>",
-  "summary": "<2-3 sentence professional summary of this resume>",
-  ${jd ? '"jdMatch": "<1-2 sentences on JD alignment>",' : ''}
-  "categories": [
-    {"name": "Formatting & Layout", "score": <0-100>},
-    {"name": "Work Experience", "score": <0-100>},
-    {"name": "Skills & Keywords", "score": <0-100>},
-    {"name": "Education", "score": <0-100>},
-    {"name": "Achievements & Impact", "score": <0-100>}
-  ],
-  "technicalSkills": ["<skill>"],
-  "softSkills": ["<skill>"],
-  "presentSections": ["<section>"],
-  "missingSections": ["<section>"],
-  "highlights": ["<4-5 specific strengths>"],
-  "suggestions": [
-    {"type": "improve|good", "text": "<specific actionable suggestion>"}
-  ],
-  "ats": {
-    "keywordDensity": <0-100>,
-    "formatting": <0-100>,
-    "readability": <0-100>
-  }
-}
-Be specific to the ACTUAL resume content. No generic advice.`;
-
-    let msgs;
-    if (extracted.type === 'pdf') {
-      msgs = [{ role: 'user', content: [
-        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: extracted.data } },
-        { type: 'text', text: 'Analyze this resume. Return only the JSON.' }
-      ]}];
-      lastResumeText = '[PDF uploaded — use the document above]';
-    } else {
-      lastResumeText = extracted.data;
-      msgs = [{ role: 'user', content: `Resume content:\n\n${extracted.data}\n\nReturn only the JSON analysis.` }];
-    }
-
-    const raw = await callClaude(sys, msgs, 1500);
-    const clean = raw.replace(/```json|```/g, '').trim();
-    const result = JSON.parse(clean);
-    renderResults(result, !!jd);
-
-  } catch (err) {
-    showErr(err.message || 'Something went wrong. Please try again.');
+    const text = await extractText(currentFile);
+    setProgress(45);
+    await sleep(350);
+    setProgress(70);
+    await sleep(350);
+    setProgress(92);
+    await sleep(300);
+    const report = analyzeResume(text);
+    setProgress(100);
+    await sleep(250);
+    renderResults(report);
+    progressWrap.classList.remove('show');
+    resultsEl.classList.add('show');
+    resultsEl.scrollIntoView({behavior:'smooth', block:'start'});
+  } catch(err){
+    progressWrap.classList.remove('show');
+    alert('Could not read this file. Try a different PDF/DOCX, or paste content into a .txt file. (' + err.message + ')');
   } finally {
-    btn.disabled = false;
-    spin.style.display = 'none';
-    icon.style.display = '';
-    btnTxt.textContent = 'Analyze Resume';
+    analyzeBtn.disabled = false;
   }
-}
-
-function showErr(msg) {
-  document.getElementById('errMsg').textContent = msg;
-  document.getElementById('errBox').classList.add('show');
-}
-
-// ── RENDER ──
-function scoreClass(s) { return s >= 75 ? 'hi' : s >= 50 ? 'md' : 'lo'; }
-
-function renderResults(r, hasJD) {
-  const circ = 2 * Math.PI * 48;
-  setTimeout(() => {
-    document.getElementById('arcCircle').style.strokeDashoffset = circ * (1 - r.overallScore / 100);
-  }, 100);
-  document.getElementById('scoreNum').textContent = r.overallScore;
-
-  const vp = document.getElementById('verdictPill');
-  const vmap = { Excellent: 'excellent', Good: 'good', Fair: 'fair', 'Needs Work': 'poor' };
-  const imap = { Excellent: 'fa-award', Good: 'fa-thumbs-up', Fair: 'fa-triangle-exclamation', 'Needs Work': 'fa-circle-exclamation' };
-  vp.className = 'verdict-pill ' + (vmap[r.verdict] || 'fair');
-  vp.innerHTML = `<i class="fas ${imap[r.verdict] || 'fa-info-circle'}"></i> ${r.verdict}`;
-  document.getElementById('heroTitle').textContent = r.heroTitle || 'Analysis Complete';
-  document.getElementById('heroSumm').textContent = r.summary || '';
-
-  const jdBox = document.getElementById('jdMatchBox');
-  if (hasJD && r.jdMatch) {
-    jdBox.style.display = 'block';
-    jdBox.innerHTML = `<strong><i class="fas fa-bullseye"></i> Job Match:</strong> ${r.jdMatch}`;
-  } else { jdBox.style.display = 'none'; }
-
-  const cb = document.getElementById('catBars');
-  cb.innerHTML = (r.categories || []).map(c => `
-    <div class="cat-bar">
-      <div class="cat-row"><span>${c.name}</span><span>${c.score}/100</span></div>
-      <div class="bar-track"><div class="bar-fill ${scoreClass(c.score)}" style="width:0" data-w="${c.score}%"></div></div>
-    </div>`).join('');
-  setTimeout(() => { cb.querySelectorAll('.bar-fill').forEach(el => el.style.width = el.dataset.w); }, 150);
-
-  document.getElementById('techTags').innerHTML = (r.technicalSkills || []).map(s => `<span class="tag tech">${s}</span>`).join('') || '<span style="color:var(--slate);font-size:0.85rem">None detected</span>';
-  document.getElementById('softTags').innerHTML = (r.softSkills || []).map(s => `<span class="tag soft">${s}</span>`).join('') || '<span style="color:var(--slate);font-size:0.85rem">None detected</span>';
-
-  const sg = document.getElementById('secGrid');
-  const pres = (r.presentSections || []).map(s => `<div class="sec-pill ok"><i class="fas fa-check"></i>${s}</div>`);
-  const miss = (r.missingSections || []).map(s => `<div class="sec-pill no"><i class="fas fa-xmark"></i>${s}</div>`);
-  sg.innerHTML = [...pres, ...miss].join('');
-
-  document.getElementById('hlList').innerHTML = (r.highlights || []).map(h => `<li class="hl-item"><i class="fas fa-star"></i><span>${h}</span></li>`).join('');
-  document.getElementById('sugList').innerHTML = (r.suggestions || []).map(s => `
-    <li class="sug-item">
-      <div class="sug-dot ${s.type === 'good' ? 'ok' : 'up'}"><i class="fas ${s.type === 'good' ? 'fa-check' : 'fa-arrow-up'}"></i></div>
-      <span>${s.text}</span>
-    </li>`).join('');
-
-  const ats = r.ats || {};
-  const atsItems = [
-    { label: 'Keyword Density', val: ats.keywordDensity || 0 },
-    { label: 'Formatting', val: ats.formatting || 0 },
-    { label: 'Readability', val: ats.readability || 0 }
-  ];
-  document.getElementById('atsGrid').innerHTML = atsItems.map(a => {
-    const col = a.val >= 75 ? '#059669' : a.val >= 50 ? '#d97706' : '#dc2626';
-    return `<div class="ats-card"><span class="ats-num" style="color:${col}">${a.val}</span><span class="ats-lbl">${a.label}</span></div>`;
-  }).join('');
-
-  document.getElementById('placeholder').style.display = 'none';
-  document.getElementById('resultsPanel').classList.add('show');
-  document.getElementById('resultsPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-// ── CORRECTED RESUME ──
-let correctedResumeContent = '';
-
-async function getCorrectedResume() {
-  if (!currentFile) return;
-  const btn = document.getElementById('correctedBtn');
-  btn.disabled = true;
-  btn.classList.add('generating');
-  btn.innerHTML = '<div class="spin" style="display:block;border-top-color:var(--ink)"></div> Generating…';
-
-  document.getElementById('correctedText').textContent = 'Generating your improved resume, please wait…';
-  document.getElementById('correctedModal').classList.add('open');
-
-  try {
-    const extracted = await extractFile(currentFile);
-    const jd = document.getElementById('jdInput').value.trim();
-
-    const sys = `You are a professional resume writer and career coach with 20 years of experience. Your task is to rewrite and significantly improve the provided resume.
-
-Rules:
-- Fix all grammar, spelling, and punctuation errors
-- Improve bullet points to use strong action verbs and quantifiable results
-- Add a professional summary if missing
-- Improve section structure and headings (use standard: Summary, Experience, Education, Skills, etc.)
-- Make language concise, impactful, and ATS-friendly
-- Keep all factual information (jobs, dates, education, companies) exactly as given — do not invent details
-- Format cleanly in plain text using lines of dashes for sections
-${jd ? `- Tailor language and keywords to align with this job description: "${jd.substring(0, 500)}"` : ''}
-
-Output ONLY the complete corrected resume in plain text. No commentary, no preamble, no markdown.`;
-
-    let msgs;
-    if (extracted.type === 'pdf') {
-      msgs = [{ role: 'user', content: [
-        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: extracted.data } },
-        { type: 'text', text: 'Rewrite and improve this resume. Output only the corrected resume text.' }
-      ]}];
-    } else {
-      msgs = [{ role: 'user', content: `Here is the resume to improve:\n\n${extracted.data}\n\nOutput only the corrected resume.` }];
-    }
-
-    correctedResumeContent = await callClaude(sys, msgs, 2000);
-    document.getElementById('correctedText').textContent = correctedResumeContent;
-
-  } catch (err) {
-    document.getElementById('correctedText').textContent = 'Error: ' + (err.message || 'Something went wrong.');
-  } finally {
-    btn.disabled = false;
-    btn.classList.remove('generating');
-    btn.innerHTML = '<i class="fas fa-file-pen"></i> Get Corrected Resume';
-  }
-}
-
-function closeModal() {
-  document.getElementById('correctedModal').classList.remove('open');
-}
-
-function downloadCorrected() {
-  if (!correctedResumeContent) return;
-  const blob = new Blob([correctedResumeContent], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'corrected-resume.txt';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function copyCorrected() {
-  if (!correctedResumeContent) return;
-  navigator.clipboard.writeText(correctedResumeContent).then(() => {
-    const btn = document.querySelector('.modal-copy-btn');
-    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-    setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copy to Clipboard'; }, 2000);
-  });
-}
-
-// close modal on overlay click
-document.getElementById('correctedModal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
 });
 
-// ── RESET ──
-function resetAll() {
-  currentFile = null;
-  lastResumeText = '';
-  correctedResumeContent = '';
-  fileInput.value = '';
-  document.getElementById('fileReady').classList.remove('show');
-  document.getElementById('analyzeBtn').disabled = true;
-  document.getElementById('resultsPanel').classList.remove('show');
-  document.getElementById('placeholder').style.display = 'block';
-  document.getElementById('jdInput').value = '';
-  document.getElementById('errBox').classList.remove('show');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+function setProgress(pct){
+  progressFill.style.width = pct + '%';
+  progressPct.textContent = pct + '%';
+}
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+async function extractText(file){
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  if (ext === '.txt'){
+    return await file.text();
+  }
+  if (ext === '.pdf'){
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    let text = '';
+    for (let i=1;i<=pdf.numPages;i++){
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(it => it.str).join(' ') + '\n';
+    }
+    return text;
+  }
+  if (ext === '.docx'){
+    const buf = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({arrayBuffer: buf});
+    return result.value;
+  }
+  throw new Error('Unsupported file type');
+}
+
+/* ---------------- ANALYSIS ENGINE (local heuristics, no external calls) ---------------- */
+
+const SECTION_PATTERNS = {
+  'Contact Info': /(email|phone|mobile|linkedin|github|@)/i,
+  'Summary / Objective': /(summary|objective|profile)\b/i,
+  'Education': /\beducation\b/i,
+  'Experience': /(experience|internship|employment)\b/i,
+  'Skills': /\bskills\b/i,
+  'Projects': /\bprojects?\b/i,
+  'Certifications': /(certification|certificate|course)/i,
+  'Achievements / Awards': /(achievement|award|honou?r)/i,
+};
+
+const ACTION_VERBS = ['led','managed','developed','built','designed','implemented','created','achieved',
+  'increased','decreased','reduced','improved','launched','organized','coordinated','analyzed','automated',
+  'optimized','streamlined','delivered','collaborated','initiated','architected','engineered','deployed',
+  'presented','negotiated','mentored','trained','resolved','researched','tested','debugged','migrated'];
+
+const SKILL_KEYWORDS = ['python','java','javascript','typescript','c++','c#','sql','html','css','react',
+  'node','node.js','angular','vue','django','flask','spring','aws','azure','gcp','docker','kubernetes',
+  'git','github','linux','mongodb','mysql','postgresql','tableau','power bi','excel','figma','agile',
+  'scrum','machine learning','deep learning','data analysis','pandas','numpy','tensorflow','pytorch',
+  'rest api','graphql','ci/cd','jenkins','jira','testing','automation','root cause analysis','uat',
+  'requirements gathering','business analysis','stakeholder management','r','matlab','android','ios',
+  'firebase','selenium','postman'];
+
+function analyzeResume(rawText){
+  const text = rawText.replace(/\s+/g,' ').trim();
+  const lower = text.toLowerCase();
+  const words = text.split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
+
+  // sections found
+  const sectionsFound = {};
+  for (const [label, pattern] of Object.entries(SECTION_PATTERNS)){
+    sectionsFound[label] = pattern.test(text);
+  }
+
+  // contact details
+  const hasEmail = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(text);
+  const hasPhone = /(\+?\d[\d\s\-]{8,}\d)/.test(text);
+  const hasLinkedIn = /linkedin\.com/i.test(text);
+
+  // action verbs found
+  const verbsFound = [...new Set(ACTION_VERBS.filter(v => new RegExp('\\b'+v+'\\b','i').test(lower))) ];
+
+  // skills found
+  const skillsFound = [...new Set(SKILL_KEYWORDS.filter(s => lower.includes(s)))];
+
+  // quantifiable results: numbers/percentages
+  const numberMatches = text.match(/\b\d+(\.\d+)?\s?%|\b\d{2,}\b/g) || [];
+  const quantCount = numberMatches.length;
+
+  // bullet usage
+  const bulletCount = (text.match(/[•▪◦‣·]|^\s*[-*]\s/gm) || []).length;
+
+  // length check
+  let lengthScore, lengthNote;
+  if (wordCount < 150){ lengthScore = 0; lengthNote = 'Too short — add more detail'; }
+  else if (wordCount < 300){ lengthScore = 3; lengthNote = 'A bit thin — could use more depth'; }
+  else if (wordCount <= 900){ lengthScore = 5; lengthNote = 'Good length'; }
+  else { lengthScore = 3; lengthNote = 'Long — consider trimming to one page'; }
+
+  // ---- scoring (100 pts total) ----
+  const checks = [];
+
+  // Contact info (10)
+  const contactPts = (hasEmail?4:0) + (hasPhone?3:0) + (hasLinkedIn?3:0);
+  checks.push({
+    label:'Contact Information',
+    status: contactPts>=7?'pass':contactPts>0?'warn':'fail',
+    points: contactPts, max:10,
+    detail: hasEmail && hasPhone ? 'Email and phone number detected.' + (hasLinkedIn?' LinkedIn link included too.':' Consider adding a LinkedIn URL.') : 'Missing email or phone number — recruiters and ATS look for these first.'
+  });
+
+  // Summary (5)
+  const summaryPts = sectionsFound['Summary / Objective'] ? 5 : 0;
+  checks.push({
+    label:'Summary / Objective',
+    status: summaryPts ? 'pass':'warn',
+    points: summaryPts, max:5,
+    detail: summaryPts ? 'A short profile/summary section was found near the top.' : 'No summary or objective section found — a 2-3 line intro helps recruiters scan faster.'
+  });
+
+  // Education (10)
+  const eduPts = sectionsFound['Education'] ? 10 : 0;
+  checks.push({
+    label:'Education Section', status: eduPts?'pass':'fail', points:eduPts, max:10,
+    detail: eduPts ? 'Education section clearly labeled.' : 'No dedicated Education section detected.'
+  });
+
+  // Experience (15)
+  const expPts = sectionsFound['Experience'] ? 15 : 0;
+  checks.push({
+    label:'Experience / Internships', status: expPts?'pass':'fail', points:expPts, max:15,
+    detail: expPts ? 'Work or internship experience section detected.' : 'No Experience or Internship section detected — this is usually the highest-weighted section for ATS.'
+  });
+
+  // Skills (15)
+  const skillsSectionPts = sectionsFound['Skills'] ? 8 : 0;
+  const skillsKeywordPts = Math.min(7, skillsFound.length);
+  const skillsPts = skillsSectionPts + skillsKeywordPts;
+  checks.push({
+    label:'Skills Section', status: skillsPts>=12?'pass':skillsPts>=6?'warn':'fail', points: skillsPts, max:15,
+    detail: skillsFound.length ? `${skillsFound.length} recognizable skill keyword(s) found${sectionsFound['Skills']?' in a labeled Skills section.':', but no dedicated Skills heading.'}` : 'No recognizable technical skill keywords found.'
+  });
+
+  // Projects/Certs (10)
+  const projPts = (sectionsFound['Projects']?6:0) + (sectionsFound['Certifications']?4:0);
+  checks.push({
+    label:'Projects & Certifications', status: projPts>=8?'pass':projPts>0?'warn':'fail', points:projPts, max:10,
+    detail: projPts ? 'Projects and/or certifications sections detected — good for showing applied skills.' : 'No Projects or Certifications sections found.'
+  });
+
+  // Action verbs (15)
+  const verbPts = Math.min(15, verbsFound.length * 2);
+  checks.push({
+    label:'Action-Oriented Language', status: verbPts>=10?'pass':verbPts>=4?'warn':'fail', points:verbPts, max:15,
+    detail: verbsFound.length ? `${verbsFound.length} strong action verb(s) detected (e.g. ${verbsFound.slice(0,3).join(', ')}).` : 'Few or no strong action verbs found — start bullet points with words like "developed", "led", "improved".'
+  });
+
+  // Quantifiable results (10)
+  const quantPts = Math.min(10, quantCount * 2);
+  checks.push({
+    label:'Quantifiable Impact', status: quantPts>=6?'pass':quantPts>0?'warn':'fail', points:quantPts, max:10,
+    detail: quantCount ? `${quantCount} number(s) or percentage(s) found — measurable results stand out to reviewers.` : 'No numbers or percentages found — try quantifying results (e.g. "reduced processing time by 20%").'
+  });
+
+  // Length (5)
+  checks.push({
+    label:'Resume Length', status: lengthScore>=5?'pass':lengthScore>=3?'warn':'fail', points:lengthScore, max:5,
+    detail: `${wordCount} words detected. ${lengthNote}.`
+  });
+
+  // Bullet formatting (5)
+  const bulletPts = bulletCount >= 4 ? 5 : bulletCount>=1 ? 2 : 0;
+  checks.push({
+    label:'Bullet Point Formatting', status: bulletPts===5?'pass':bulletPts>0?'warn':'fail', points:bulletPts, max:5,
+    detail: bulletCount>=4 ? 'Content is broken into scannable bullet points.' : 'Little or no bullet-point formatting detected — bullets are easier for reviewers and ATS to parse than paragraphs.'
+  });
+
+  const totalPts = checks.reduce((s,c) => s+c.points, 0);
+  const maxPts = checks.reduce((s,c) => s+c.max, 0);
+  const score = Math.round((totalPts/maxPts)*100);
+
+  let grade, gradeColor, verdict;
+  if (score>=85){ grade='A · Excellent'; gradeColor='cyan'; verdict='Strong resume — well structured with clear, measurable impact.'; }
+  else if (score>=70){ grade='B · Solid'; gradeColor='cyan'; verdict='Good foundation. A few targeted tweaks will push this higher.'; }
+  else if (score>=50){ grade='C · Needs Work'; gradeColor='amber'; verdict='Core content is there, but structure or impact language needs improvement.'; }
+  else { grade='D · Weak'; gradeColor='coral'; verdict='Several key sections or signals are missing — see suggestions below.'; }
+
+  // suggestions: pick lowest-scoring checks
+  const suggestions = [];
+  const ranked = [...checks].sort((a,b) => (a.points/a.max) - (b.points/b.max));
+  for (const c of ranked){
+    if (c.points < c.max){
+      suggestions.push({label:c.label, detail:c.detail});
+    }
+    if (suggestions.length>=6) break;
+  }
+  if (!suggestions.length) suggestions.push({label:'Keep it up', detail:'All core checks passed — consider tailoring keywords to each specific job description before applying.'});
+
+  return {
+    score, grade, gradeColor, verdict, checks, wordCount, verbsFound, skillsFound,
+    sectionsFound, quantCount, bulletCount, hasEmail, hasPhone, hasLinkedIn, suggestions
+  };
+}
+
+/* ---------------- RENDER ---------------- */
+
+function renderResults(r){
+  // ring
+  const circumference = 2*Math.PI*76;
+  const offset = circumference - (r.score/100)*circumference;
+  const ringFg = document.getElementById('ringFg');
+  ringFg.setAttribute('stroke-dasharray', circumference.toFixed(1));
+  ringFg.setAttribute('stroke-dashoffset', circumference.toFixed(1));
+  const colorMap = {cyan:'var(--cyan)', amber:'var(--amber)', coral:'var(--coral)'};
+  ringFg.style.stroke = colorMap[r.gradeColor];
+  setTimeout(() => { ringFg.setAttribute('stroke-dashoffset', offset.toFixed(1)); }, 60);
+
+  document.getElementById('scoreNum').textContent = r.score;
+  document.getElementById('scoreNum').style.color = colorMap[r.gradeColor];
+  const gradePill = document.getElementById('gradePill');
+  gradePill.textContent = r.grade;
+  gradePill.style.background = r.gradeColor==='cyan' ? 'rgba(79,216,196,0.15)' : r.gradeColor==='amber' ? 'rgba(240,169,59,0.15)' : 'rgba(255,107,91,0.15)';
+  gradePill.style.color = colorMap[r.gradeColor];
+  document.getElementById('scoreVerdict').textContent = r.verdict;
+
+  // metric grid
+  const metrics = [
+    {label:'Word Count', value:r.wordCount, sub:'words total'},
+    {label:'Action Verbs', value:r.verbsFound.length, sub:'strong verbs used'},
+    {label:'Skill Keywords', value:r.skillsFound.length, sub:'recognized skills'},
+    {label:'Quantified Points', value:r.quantCount, sub:'numbers / %'},
+    {label:'Bullet Points', value:r.bulletCount, sub:'bulleted lines'},
+    {label:'Sections Found', value:Object.values(r.sectionsFound).filter(Boolean).length + '/' + Object.keys(r.sectionsFound).length, sub:'of standard sections'},
+  ];
+  document.getElementById('metricGrid').innerHTML = metrics.map(m => `
+    <div class="metric-box">
+      <div class="m-label">${m.label}</div>
+      <div class="m-value">${m.value}</div>
+      <div class="m-sub">${m.sub}</div>
+    </div>`).join('');
+
+  // checks
+  document.getElementById('checkList').innerHTML = r.checks.map(c => `
+    <div class="check-row">
+      <div class="check-icon ${c.status}">${c.status==='pass'?'✓':c.status==='warn'?'!':'✕'}</div>
+      <div class="check-body">
+        <b>${c.label}</b>
+        <p>${c.detail}</p>
+      </div>
+      <div class="check-points">${c.points}/${c.max}</div>
+    </div>`).join('');
+
+  // section coverage strip
+  document.getElementById('sectionStrip').innerHTML = Object.entries(r.sectionsFound).map(([label, found]) => `
+    <div class="strip-item ${found?'found':'missing'}">
+      <div class="dot2"></div><span>${label}</span>
+    </div>`).join('');
+
+  // skill tags
+  const skillTagsEl = document.getElementById('skillTags');
+  skillTagsEl.innerHTML = r.skillsFound.length
+    ? r.skillsFound.map(s => `<div class="tag">${s}</div>`).join('')
+    : `<div class="empty-note">No recognizable technical keywords were detected. Add a dedicated Skills section listing your tools and technologies.</div>`;
+
+  // verb tags
+  const verbTagsEl = document.getElementById('verbTags');
+  verbTagsEl.innerHTML = r.verbsFound.length
+    ? r.verbsFound.map(v => `<div class="tag soft">${v}</div>`).join('')
+    : `<div class="empty-note">No strong action verbs detected. Try opening bullet points with words like "built", "led", or "improved".</div>`;
+
+  // suggestions
+  document.getElementById('suggestionList').innerHTML = r.suggestions.map((s,i) => `
+    <div class="suggestion">
+      <div class="sugg-num">${String(i+1).padStart(2,'0')}</div>
+      <p><b>${s.label}.</b> ${s.detail}</p>
+    </div>`).join('');
 }
 </script>
 </body>
